@@ -2,14 +2,11 @@
 #include <bitset>
 using namespace std;
 
-// mod-2 division: XOR the generator wherever a 1 is found
-string divide(string data, string gen) {
-    int n = gen.size();
-    for (int i = 0; i + n <= (int)data.size(); i++)
-        if (data[i] == '1')
-            for (int j = 0; j < n; j++)
-                data[i + j] = (data[i + j] == gen[j]) ? '0' : '1';
-    return data.substr(data.size() - (n - 1));   // remainder
+// mod-2 division by generator 1101 (13)
+int rem(int x) {
+    for (int i = 10; i >= 3; i--)
+        if (x >> i & 1) x ^= 13 << (i - 3);
+    return x;
 }
 
 int main() {
@@ -17,24 +14,15 @@ int main() {
     cout << "Enter a character: ";
     cin >> ch;
 
-    string data = bitset<8>(ch).to_string();
-    string gen = "1101";
+    int data = ch << 3;                  // 8 data bits + 3 zeros
+    int sent = data | rem(data);         // add remainder
+    cout << "Sent: " << bitset<11>(sent) << endl;
 
-    // sender: append zeros, divide, append remainder
-    string rem = divide(data + string(gen.size() - 1, '0'), gen);
-    string sent = data + rem;
-    cout << "Data: " << data << "\nCRC : " << rem << "\nSent: " << sent << endl;
-
-    // simulate error
     int pos;
-    cout << "Flip which bit? (0-" << sent.size() - 1 << ", -1 for none): ";
+    cout << "Flip which bit? (0-10, -1 for none): ";
     cin >> pos;
-    string recv = sent;
-    if (pos >= 0 && pos < (int)recv.size()) recv[pos] = (recv[pos] == '0') ? '1' : '0';
-    cout << "Received: " << recv << endl;
+    if (pos >= 0) sent ^= 1 << pos;
+    cout << "Received: " << bitset<11>(sent) << endl;
 
-    // receiver: remainder must be all zeros
-    string check = divide(recv, gen);
-    if (check.find('1') == string::npos) cout << "No error\n";
-    else cout << "Error detected!\n";
+    cout << (rem(sent) == 0 ? "No error\n" : "Error detected!\n");
 }

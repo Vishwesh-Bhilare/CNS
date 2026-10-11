@@ -1,56 +1,37 @@
 #include <iostream>
-#include <bitset>
 using namespace std;
 
 int main() {
     char ch;
     cout << "Enter a character: ";
     cin >> ch;
-    string d = bitset<7>(ch).to_string();
 
-    // positions 1..11; powers of 2 (1,2,4,8) are parity bits, rest are data
-    int code[12] = {0};
-    int j = 0;
+    // data bits go in non-power-of-2 positions (3,5,6,7,9,10,11)
+    int c[12] = {0}, j = 6;
     for (int i = 1; i <= 11; i++)
-        if (i & (i - 1)) code[i] = d[j++] - '0';
+        if (i & (i - 1)) c[i] = (ch >> j--) & 1;
 
-    // parity bit p = XOR of all positions that have bit p set
-    for (int p = 1; p <= 8; p *= 2)
-        for (int i = 1; i <= 11; i++)
-            if ((i & p) && i != p) code[p] ^= code[i];
+    // XOR of positions of all 1-bits; parity bits are set to cancel it out
+    int x = 0;
+    for (int i = 1; i <= 11; i++) if (c[i]) x ^= i;
+    for (int p = 1; p <= 8; p *= 2) c[p] = (x & p) != 0;
 
     cout << "Hamming code: ";
-    for (int i = 1; i <= 11; i++) cout << code[i];
-    cout << endl;
+    for (int i = 1; i <= 11; i++) cout << c[i];
 
-    // simulate error
     int pos;
-    cout << "Flip which position? (1-11, 0 for none): ";
+    cout << "\nFlip which position? (1-11, 0 for none): ";
     cin >> pos;
-    if (pos >= 1 && pos <= 11) code[pos] ^= 1;
+    if (pos) c[pos] ^= 1;
 
-    cout << "Received    : ";
-    for (int i = 1; i <= 11; i++) cout << code[i];
-    cout << endl;
-
-    // receiver: failed parity checks add up to the error position
+    // receiver: same XOR gives 0 if fine, else the error position
     int err = 0;
-    for (int p = 1; p <= 8; p *= 2) {
-        int x = 0;
-        for (int i = 1; i <= 11; i++)
-            if (i & p) x ^= code[i];
-        if (x) err += p;
-    }
+    for (int i = 1; i <= 11; i++) if (c[i]) err ^= i;
 
-    if (err == 0) cout << "No error\n";
-    else {
-        cout << "Error at position " << err << ", corrected\n";
-        code[err] ^= 1;
-    }
+    if (err) { cout << "Error at position " << err << ", corrected\n"; c[err] ^= 1; }
+    else cout << "No error\n";
 
-    // extract data bits
-    string out = "";
-    for (int i = 1; i <= 11; i++)
-        if (i & (i - 1)) out += to_string(code[i]);
-    cout << "Decoded: " << (char)bitset<7>(out).to_ulong() << endl;
+    int v = 0;
+    for (int i = 1; i <= 11; i++) if (i & (i - 1)) v = v * 2 + c[i];
+    cout << "Decoded: " << (char)v << endl;
 }

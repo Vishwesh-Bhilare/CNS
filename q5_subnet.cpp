@@ -2,7 +2,7 @@
 #include <arpa/inet.h>
 using namespace std;
 
-string str(unsigned x) {                         // number -> "a.b.c.d"
+string str(unsigned x) {
     in_addr a;
     a.s_addr = htonl(x);
     return inet_ntoa(a);
@@ -15,27 +15,19 @@ int main() {
     cin >> s;
     cout << "Prefix (e.g. 24): ";
     cin >> p;
-
-    unsigned ip = ntohl(inet_addr(s.c_str()));   // "a.b.c.d" -> number
-    unsigned mask = ~0u << (32 - p);
-    unsigned net = ip & mask;
-    unsigned bc = net | ~mask;
-
-    cout << "Mask     : " << str(mask) << endl;
-    cout << "Network  : " << str(net) << endl;
-    cout << "Broadcast: " << str(bc) << endl;
-    cout << "Hosts    : " << bc - net - 1 << endl;
-
-    cout << "\nNumber of subnets: ";
+    cout << "Number of subnets: ";
     cin >> n;
+
+    unsigned net = ntohl(inet_addr(s.c_str())) & (~0u << (32 - p));
+
     int bits = 0;
-    while ((1 << bits) < n) bits++;              // bits needed for n subnets
+    while ((1 << bits) < n) bits++;      // extra bits needed
     int np = p + bits;
     unsigned size = 1u << (32 - np);
 
-    cout << "New prefix /" << np << "  mask " << str(~0u << (32 - np)) << endl;
-    for (int i = 0; i < n; i++) {
-        unsigned st = net + i * size;
-        cout << "Subnet " << i + 1 << ": " << str(st) << "  -  " << str(st + size - 1) << endl;
-    }
+    cout << "Subnet mask: " << str(~0u << (32 - np)) << "  (/" << np << ")\n";
+    cout << "Hosts per subnet: " << size - 2 << endl;
+    for (int i = 0; i < n; i++)
+        cout << "Subnet " << i + 1 << ": " << str(net + i * size)
+             << " - " << str(net + i * size + size - 1) << endl;
 }

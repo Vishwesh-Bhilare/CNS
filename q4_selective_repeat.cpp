@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
@@ -13,22 +12,17 @@ int main() {
     cout << "Window size: ";
     cin >> N;
 
-    vector<bool> acked(total, false);
-    int base = 0;                                // first unacknowledged frame
+    bool ok[1000] = {};                  // ok[i] = frame i acknowledged
+    int base = 0;
 
     while (base < total) {
-        int end = min(base + N, total);
-        for (int j = base; j < end; j++) {
-            if (acked[j]) continue;              // already received, skip
-            cout << "Sent " << j << endl;
-            if (rand() % 4 == 0)                 // 25% loss
-                cout << "Frame " << j << " lost -> only this one is resent\n";
-            else {
-                acked[j] = true;
-                cout << "ACK " << j << endl;
+        for (int j = base; j < min(base + N, total); j++)
+            if (!ok[j]) {
+                cout << "Sent " << j;
+                if (rand() % 4) { ok[j] = true; cout << " -> ACK\n"; }
+                else cout << " -> lost, resend only this\n";
             }
-        }
-        while (base < total && acked[base]) base++;   // slide window
+        while (ok[base]) base++;         // slide window
     }
     cout << "Done\n";
 }
