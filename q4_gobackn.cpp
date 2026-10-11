@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <algorithm>
 using namespace std;
 
 int main() {
@@ -11,23 +12,19 @@ int main() {
     cout << "Window size: ";
     cin >> N;
 
-    int base = 0, next = 0;
-    while (base < total) {
-        // sender sends the whole window
-        while (next < base + N && next < total) {
-            cout << "Sent frame " << next << endl;
-            next++;
-        }
-        // receiver accepts frames in order only
-        for (int i = base; i < next; i++) {
-            if (rand() % 100 < 25) {   // 25% chance of loss
-                cout << "Frame " << i << " lost! Timeout -> Go back to " << i << endl;
-                next = base = i;
-                break;
+    int i = 0;                                   // first unacknowledged frame
+    while (i < total) {
+        int end = min(i + N, total);
+        for (int j = i; j < end; j++) cout << "Sent " << j << endl;
+
+        for (int j = i; j < end; j++) {
+            if (rand() % 4 == 0) {               // 25% loss
+                cout << "Frame " << j << " lost -> resend from " << j << endl;
+                break;                           // go back: i stays at j
             }
-            cout << "ACK " << i << " received" << endl;
-            base = i + 1;
+            cout << "ACK " << j << endl;
+            i++;
         }
     }
-    cout << "All frames sent successfully\n";
+    cout << "Done\n";
 }

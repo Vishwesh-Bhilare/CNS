@@ -1,49 +1,41 @@
 #include <iostream>
-#include <cstdio>
-#include <cmath>
-#include <string>
+#include <arpa/inet.h>
 using namespace std;
 
-string toStr(unsigned int ip) {
-    return to_string(ip >> 24) + "." + to_string((ip >> 16) & 255) + "." +
-           to_string((ip >> 8) & 255) + "." + to_string(ip & 255);
+string str(unsigned x) {                         // number -> "a.b.c.d"
+    in_addr a;
+    a.s_addr = htonl(x);
+    return inet_ntoa(a);
 }
 
 int main() {
     string s;
-    int prefix, n;
-    unsigned int a, b, c, d;
-
-    cout << "Enter network IP (e.g. 192.168.1.0): ";
+    int p, n;
+    cout << "Network IP: ";
     cin >> s;
-    sscanf(s.c_str(), "%u.%u.%u.%u", &a, &b, &c, &d);
-    cout << "Enter prefix length (e.g. 24): ";
-    cin >> prefix;
+    cout << "Prefix (e.g. 24): ";
+    cin >> p;
 
-    unsigned int ip = (a << 24) | (b << 16) | (c << 8) | d;
-    unsigned int mask = 0xFFFFFFFFu << (32 - prefix);
+    unsigned ip = ntohl(inet_addr(s.c_str()));   // "a.b.c.d" -> number
+    unsigned mask = ~0u << (32 - p);
+    unsigned net = ip & mask;
+    unsigned bc = net | ~mask;
 
-    cout << "Subnet mask : " << toStr(mask) << endl;
-    cout << "Network     : " << toStr(ip & mask) << endl;
-    cout << "Broadcast   : " << toStr(ip | ~mask) << endl;
-    cout << "Usable hosts: " << ((1u << (32 - prefix)) - 2) << endl;
+    cout << "Mask     : " << str(mask) << endl;
+    cout << "Network  : " << str(net) << endl;
+    cout << "Broadcast: " << str(bc) << endl;
+    cout << "Hosts    : " << bc - net - 1 << endl;
 
-    cout << "\nHow many subnets do you need? ";
+    cout << "\nNumber of subnets: ";
     cin >> n;
-    int bits = ceil(log2(n));
-    int np = prefix + bits;
-    if (np > 30) { cout << "Too many subnets\n"; return 1; }
+    int bits = 0;
+    while ((1 << bits) < n) bits++;              // bits needed for n subnets
+    int np = p + bits;
+    unsigned size = 1u << (32 - np);
 
-    unsigned int nmask = 0xFFFFFFFFu << (32 - np);
-    unsigned int size = 1u << (32 - np);
-    cout << "New prefix /" << np << ", mask " << toStr(nmask)
-         << ", hosts per subnet " << size - 2 << endl;
-
-    unsigned int net = ip & mask;
+    cout << "New prefix /" << np << "  mask " << str(~0u << (32 - np)) << endl;
     for (int i = 0; i < n; i++) {
-        unsigned int st = net + i * size;
-        cout << "Subnet " << i + 1 << ": " << toStr(st) << "/" << np
-             << "  hosts " << toStr(st + 1) << " - " << toStr(st + size - 2)
-             << "  broadcast " << toStr(st + size - 1) << endl;
+        unsigned st = net + i * size;
+        cout << "Subnet " << i + 1 << ": " << str(st) << "  -  " << str(st + size - 1) << endl;
     }
 }

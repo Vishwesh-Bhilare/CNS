@@ -1,35 +1,21 @@
 #include <iostream>
-#include <string>
 #include <netdb.h>
 #include <arpa/inet.h>
 using namespace std;
 
 int main() {
-    int ch;
     string in;
-    cout << "1. URL -> IP\n2. IP -> URL\nChoice: ";
-    cin >> ch;
-    cout << "Enter: ";
+    cout << "Enter URL or IP: ";
     cin >> in;
 
-    if (ch == 1) {
-        addrinfo hints{}, *res;
-        hints.ai_family = AF_INET;
-        if (getaddrinfo(in.c_str(), nullptr, &hints, &res) != 0) { cout << "Lookup failed\n"; return 1; }
-        for (addrinfo* p = res; p; p = p->ai_next) {
-            char ip[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &((sockaddr_in*)p->ai_addr)->sin_addr, ip, sizeof(ip));
-            cout << "IP: " << ip << endl;
-        }
-        freeaddrinfo(res);
-    } else {
-        sockaddr_in sa{};
-        sa.sin_family = AF_INET;
-        inet_pton(AF_INET, in.c_str(), &sa.sin_addr);
-        char host[NI_MAXHOST];
-        if (getnameinfo((sockaddr*)&sa, sizeof(sa), host, sizeof(host), nullptr, 0, NI_NAMEREQD) != 0) {
-            cout << "Lookup failed\n"; return 1;
-        }
-        cout << "URL: " << host << endl;
+    in_addr a;
+    if (inet_aton(in.c_str(), &a)) {             // input is an IP
+        hostent* h = gethostbyaddr(&a, sizeof(a), AF_INET);
+        if (h) cout << "URL: " << h->h_name << endl;
+        else cout << "Not found\n";
+    } else {                                     // input is a URL
+        hostent* h = gethostbyname(in.c_str());
+        if (h) cout << "IP: " << inet_ntoa(*(in_addr*)h->h_addr_list[0]) << endl;
+        else cout << "Not found\n";
     }
 }

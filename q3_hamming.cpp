@@ -1,52 +1,56 @@
 #include <iostream>
+#include <bitset>
 using namespace std;
 
 int main() {
     char ch;
     cout << "Enter a character: ";
     cin >> ch;
+    string d = bitset<7>(ch).to_string();
 
-    int code[12] = {0};                  // positions 1..11
-    int dataPos[7] = {3, 5, 6, 7, 9, 10, 11};
+    // positions 1..11; powers of 2 (1,2,4,8) are parity bits, rest are data
+    int code[12] = {0};
+    int j = 0;
+    for (int i = 1; i <= 11; i++)
+        if (i & (i - 1)) code[i] = d[j++] - '0';
 
-    // place 7 data bits
-    for (int i = 0; i < 7; i++) code[dataPos[i]] = (ch >> (6 - i)) & 1;
-
-    // parity bits at positions 1, 2, 4, 8
-    for (int p = 1; p <= 8; p <<= 1) {
-        int x = 0;
-        for (int i = 1; i <= 11; i++) if (i & p) x ^= code[i];
-        code[p] = x;
-    }
+    // parity bit p = XOR of all positions that have bit p set
+    for (int p = 1; p <= 8; p *= 2)
+        for (int i = 1; i <= 11; i++)
+            if ((i & p) && i != p) code[p] ^= code[i];
 
     cout << "Hamming code: ";
     for (int i = 1; i <= 11; i++) cout << code[i];
     cout << endl;
 
-    int err;
-    cout << "Enter error position to flip (1-11, 0 for none): ";
-    cin >> err;
-    if (err >= 1 && err <= 11) code[err] ^= 1;
+    // simulate error
+    int pos;
+    cout << "Flip which position? (1-11, 0 for none): ";
+    cin >> pos;
+    if (pos >= 1 && pos <= 11) code[pos] ^= 1;
 
-    cout << "Received code: ";
+    cout << "Received    : ";
     for (int i = 1; i <= 11; i++) cout << code[i];
     cout << endl;
 
-    // syndrome = position of error
-    int syndrome = 0;
-    for (int p = 1; p <= 8; p <<= 1) {
+    // receiver: failed parity checks add up to the error position
+    int err = 0;
+    for (int p = 1; p <= 8; p *= 2) {
         int x = 0;
-        for (int i = 1; i <= 11; i++) if (i & p) x ^= code[i];
-        if (x) syndrome += p;
+        for (int i = 1; i <= 11; i++)
+            if (i & p) x ^= code[i];
+        if (x) err += p;
     }
 
-    if (syndrome == 0) cout << "No error detected\n";
+    if (err == 0) cout << "No error\n";
     else {
-        cout << "Error at position " << syndrome << ", correcting...\n";
-        code[syndrome] ^= 1;
+        cout << "Error at position " << err << ", corrected\n";
+        code[err] ^= 1;
     }
 
-    int val = 0;
-    for (int i = 0; i < 7; i++) val = (val << 1) | code[dataPos[i]];
-    cout << "Decoded character: " << (char)val << endl;
+    // extract data bits
+    string out = "";
+    for (int i = 1; i <= 11; i++)
+        if (i & (i - 1)) out += to_string(code[i]);
+    cout << "Decoded: " << (char)bitset<7>(out).to_ulong() << endl;
 }
